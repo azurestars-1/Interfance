@@ -1,0 +1,221 @@
+:root {
+  --color-accent: #00fffb;
+  --color-heading: #cafff1;
+  --color-body: #f0fffe;
+  --color-body: #00ffbb;
+  --color-body-dark: #00aa66;
+  --color-bg: #0a0f0d;
+  --color-card: #111a17;
+  --color-dropdown: #f700ffcc;
+  --color-highlight-dropdown: #ff00cc;
+  --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-button: #00a0e0;
+  --color-button-hover: #00bbff;
+  --color-message-border-bar: #660066;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.model-settings-container {
+  width: 100%;
+  background-color: var(--color-card);
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 15vw;
+}
+
+.model-settings {
+  position:relative;
+  left:5vw;
+  font-size:small;
+  background-color: var(--color-card);
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--color-accent);
+  margin-bottom: 1rem;
+  table-layout: fixed;
+  font-family: monospace;
+  border-collapse: collapse;
+  font-family: monospace;
+  flex: 4;
+}
+
+.session-picker-container {
+  flex: 2;
+  background-color: var(--color-card);
+  padding: 1rem 3rem;
+}
+
+#FakeButton {
+  padding: 1.86rem 1.5rem;
+}
+
+#session-loader-button {
+  padding: 1.25rem 1.5rem;
+}
+
+.load-file {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0.25rem 1.5rem;
+  border-left: 2px solid var(--color-accent);
+  border-right: 2px solid var(--color-accent);
+  border-top: 2px solid var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
+  background-color: var(--color-button);
+  color: var(--color-accent);
+  font-size: medium;
+  margin-bottom: 1rem;
+}
+.load-file:hover {
+  background-color: var(--color-button-hover);
+}
+
+button {
+    background-color: var(--color-button);
+    color: var(--color-accent);
+    padding: 0.25rem 1.5rem;
+    border-left: 2px solid var(--color-accent);
+    border-right: 2px solid var(--color-accent);
+    border-top: 2px solid var(--color-accent);
+    border-bottom: 2px solid var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-size: medium;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--color-button-hover);
+}
+
+.top-header h1 {
+  margin-bottom: 1rem;
+}
+
+.top-header p {
+  max-width: 100%;
+  opacity: 0.9;
+}
+
+.top-header td {
+    padding: 2px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top-header td:not(:last-child) {
+    border-right: 1px solid currentColor;
+}
+
+#session-chat, session-chat-html {
+    position: relative;
+    width: 85%;
+    height: 65vh;
+    background-color: var(--color-bg);
+    color: var(--color-body);
+    left: 5vw;
+}
+
+.Message {
+    background-color: var(--color-card);
+    position: relative;
+    left: 5vw;
+    width: 75%;
+    padding: 2vh 5vw;
+    white-space: pre-wrap;
+}
+
+.User-MSG {
+    color: var(--color-accent);
+    border-bottom: 2px solid var(--color-message-border-bar);
+}
+
+.LLM-MSG {
+    border-bottom: 2px solid var(--color-message-border-bar);
+}
+
+.System-MSG {
+    color: #ff000;
+    border-bottom: 2px solid var(--color-message-border-bar);
+}
+
+.LLM-Reasoning {
+    color: var(--color-body-dark);
+}
+
+.LLM-Output {
+    color: var(--color-body);
+}
+
+
+#BottomBar {
+    display: flex;
+}
+
+#message-left-empty {
+    flex: 1;
+}
+
+#message-right-empty {
+    flex: 2;
+}
+#message-input {
+    height: 15vh;
+    background-color: var(--color-bg);
+    color: var(--color-body);
+    flex: 16;
+}
+
+#message-button {
+    padding: 0.25rem 1.5rem;
+    flex: 1;
+}
+
+details {
+  cursor: pointer;
+}
+
+details[open] summary {
+  margin-bottom: 1rem;
+}
+
+summary {
+  color: var(--color-dropdown);
+  font-weight: 600;
+  padding: 0.5rem 0;
+  user-select: none;
+}
+
+summary:hover {
+  color: var(--color-highlight-dropdown);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-stack);
+  background-color: var(--color-bg);
+  color: var(--color-body);
+  line-height: 1.7;
+  font-size: 16px;
+  min-height: 100vh;
+}
+
+
+h1, h2, h3 {
+  color: var(--color-heading);
+}
+
+h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }

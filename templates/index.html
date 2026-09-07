@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Interfance</title>
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="../static/scripts.js" defer></script>
+    </head>
+    <body>
+        <div class="model-settings-container">
+            <table class="model-settings">
+                <colgroup>
+                    <col>
+                    <col>
+                    <col>
+                    <col>
+                    <col>
+                </colgroup>
+
+                <tr>
+                    <td colspan="5">Querying {{model}} at {{base_url}}</td>
+                </tr>
+
+                <tr>
+                    <td>Reasoning: {{reasoning}}</td>
+                    <td>Effort: {{reasoning_effort}}</td>
+                    <td>Budget: {{max_reasoning}}</td>
+                    <td>Output: {{max_output}}</td>
+                    <td></td>
+                </tr>
+
+                <tr>
+                    <td>Temperature: {{greedy_temp}}/{{default_temp}}/{{creative_temp}}</td>
+                    <td>Top-P: {{top_p}}</td>
+                    <td>Top-K: {{top_k}}</td>
+                    <td>Min-P: {{min_p}}</td>
+                    <td></td>
+                </tr>
+
+                <tr>
+                    <td>Repetition Penalty: {{rep_pen}}</td>
+                    <td>Frequency Penalty: {{freq_pen}}</td>
+                    <td>Presence Penalty: {{pres_pen}}</td>
+                    <td>XTC Probability: {{xtc_prob}}</td>
+                    <td>XTC Threshold: {{xtc_thres}}</td>
+                </tr>
+            </table>
+            <div class="session-picker-container">
+                <p>Select a Session to Load:</p>
+                <input type="file" id="file-upload" style="display:none;" accept=".json">
+                <label for="file-upload" class="load-file">
+                  Select Session
+                </label>
+                <span id="file-name">No session chosen</span>
+                <br />
+                <button id="session-loader-button" style="display:none">Load Session.</button>
+                <div id="FakeButton"></div>
+            </div>
+        </div>
+        <div id="MainBody" style="display:none">
+            <div id="session-chat-html"></div>
+            <textarea id="session-chat" name="session-chat" placeholder="Session Chat goes here..."></textarea>
+            <div id="BottomBar">
+                <br />
+                <div id="message-left-empty"></div>
+                <textarea id="message-input" name="message-chat" placeholder="Message goes here..."></textarea>
+                <button id="message-button">Submit Message.</button>
+                <div id="message-right-empty"></div>
+            </div>
+        <br />
+        <br />
+        <br />
+        <br />
+        <br />
+        <br />
+    </body>
+</html>
