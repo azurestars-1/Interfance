@@ -156,6 +156,7 @@ button:hover {
 
 #BottomBar {
     display: flex;
+    margin-top: 1vh;
 }
 
 #message-left-empty {

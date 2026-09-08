@@ -33,7 +33,7 @@ function sessionChatFocus_HTMLClick(event) {
 }
 
 // Attribution to Gemma4 31B for this function
-function countStr(text, search) {
+function gemma4_31B_countStr(text, search) {
     if (!search) {
         return 0;
     }
@@ -47,161 +47,199 @@ function countStr(text, search) {
     return count
 }
 
+function gemma4_31B_replaceFromIndex(initialText, searchStr, replacement, index) {
+    return initialText.slice(0, index) + initialText.slice(index).replace(searchStr, replacement);
+}
+
+function gemma4_31B_escape_innerhtml(longString) {
+    const allowedTags = ['div', 'span', 'details', 'summary'];
+    // Create a regex pattern: (div|span|details|summary)
+    const tagPattern = new RegExp(`(<\\/?(${allowedTags.join('|')})\\b[^>]*>)`, 'gi');
+
+    // 1. Temporarily replace allowed tags with a unique placeholder
+    const placeholders = [];
+    const protectedString = longString.replace(tagPattern, (match) => {
+      placeholders.push(match);
+      return `__TAG_${placeholders.length - 1}__`;
+    });
+
+    // 2. Escape all remaining < and > characters
+    const escapedString = protectedString
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // 3. Restore the allowed tags from the placeholders
+    return escapedString.replace(/__TAG_(\d+)__/g, (_, index) => {
+      return placeholders[index];
+    });
+}
+
+function think_replace(initialText, interiorName, index, secondIndex) {
+    initialText = gemma4_31B_replaceFromIndex(initialText, '<think>', `<details><summary>${interiorName}</summary><span class="${interiorName}">`, index);
+    return gemma4_31B_replaceFromIndex(initialText, '</think>', '</span></details>', secondIndex);
+}
+
 function sessionChatUnFocused() {
     let content = sessionChat.value;
-    let potentialMSGs = countStr(content, "{{[OUTPUT]}}") + countStr(content, "{{[INPUT]}}") + countStr(content, "{{[SYSTEM]}}")
-    for (let index=0; index < potentialMSGs; index++) {
-        next_output = content.indexOf('{{[OUTPUT]}}')
-        next_input = content.indexOf('{{[INPUT]}}')
-        next_system = content.indexOf('{{[SYSTEM]}}')
+    let potentialMSGs = gemma4_31B_countStr(content, "{{[OUTPUT]}}") + gemma4_31B_countStr(content, "{{[INPUT]}}") + gemma4_31B_countStr(content, "{{[SYSTEM]}}")
 
-        if (next_input == -1 && next_output == -1 && next_system == -1) {
-            break
-        }
-        else if (next_input == -1 && next_output == -1) {
-            content = content.replace('{{[SYSTEM]}}', '<div class="Message"><p class="System-MSG">')
-            content += '</p></div>'
-        } else if (next_input == -1 && next_system == -1) {
-            content = content.replace('{{[OUTPUT]}}', '<div class="Message"><p class="LLM-MSG">')
-            content = content.replace('<think>', '<details><summary>LLM-Reasoning</summary><span class="LLM-Reasoning">')
-            content = content.replace('</think>', '</span></details><span class="LLM-Output">')
-            content += '</span></p></div>'
-        } else if (next_output == -1 && next_system == -1) {
-            content = content.replace('{{[INPUT]}}', '<div class="Message"><p class="User-MSG">')
-            content += '</p></div>'
-        } else if (next_input == -1) {
-            if (next_output < next_system) {
-                content = content.replace('{{[OUTPUT]}}', '<div class="Message"><p class="LLM-MSG">')
-                content = content.replace('<think>', '<details><summary>LLM-Reasoning</summary><span class="LLM-Reasoning">')
-                content = content.replace('</think>', '</span></details><span class="LLM-Output">')
-                temp1 = content.indexOf('{{[OUTPUT]}}')
-                temp2 = content.indexOf('{{[SYSTEM]}}')
-                if (temp1 == -1 || temp2 < temp1) {
-                    content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                } else {
-                    content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                }
-            } else {
-                content = content.replace('{{[SYSTEM]}}', '<div class="Message"><p class="System-MSG">')
-                temp1 = content.indexOf('{{[OUTPUT]}}')
-                temp2 = content.indexOf('{{[SYSTEM]}}')
-                if (temp2 == -1 || temp1 < temp2) {
-                    content = content.replace('{{[OUTPUT]}}', '</p></div>{{[OUTPUT]}}');
-                } else {
-                    content = content.replace('{{[SYSTEM]}}', '</p></div>{{[SYSTEM]}}');
-                }
-            }
-        } else if (next_output == -1) {
-            if (next_input < next_system) {
-                content = content.replace('{{[INPUT]}}', '<div class="Message"><p class="User-MSG">')
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[SYSTEM]}}')
-                if (temp1 == -1 || temp2 < temp1) {
-                    content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                } else {
-                    content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                }
-            } else {
-                content = content.replace('{{[SYSTEM]}}', '<div class="Message"><p class="System-MSG">')
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[SYSTEM]}}')
-                if (temp2 == -1 || temp1 < temp2) {
-                    content = content.replace('{{[INPUT]}}', '</p></div>{{[INPUT]}}');
-                } else {
-                    content = content.replace('{{[SYSTEM]}}', '</p></div>{{[SYSTEM]}}');
-                }
-            }
-        } else if (next_system == -1) {
-            if (next_input < next_output) {
-                content = content.replace('{{[INPUT]}}', '<div class="Message"><p class="User-MSG">');
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[OUTPUT]}}')
-                if (temp1 == -1 || temp2 < temp1) {
-                    content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                } else {
-                    content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                }
-            } else {
-                content = content.replace('{{[OUTPUT]}}', '<div class="Message"><p class="LLM-MSG">')
-                content = content.replace('<think>', '<details><summary>LLM-Reasoning</summary><span class="LLM-Reasoning">')
-                content = content.replace('</think>', '</span></details><span class="LLM-Output">')
-                temp1 = content.indexOf('{{[OUTPUT]}}')
-                temp2 = content.indexOf('{{[INPUT]}}')
-                if (temp1 == -1 || temp2 < temp1) {
-                    content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                } else {
-                    content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                }
-            }
+    let finished = 0;
+    let mv_index = 0;
+    while (finished===0) {
+        let frst_think = content.indexOf('<think>', mv_index);
+        let second_think = content.indexOf('<think>', frst_think+7);
+        let frst_close_think = content.indexOf('</think>', mv_index);
+        //console.log('OPEN: ' + `${frst_think}` + '; CLOSE: ' + `${frst_close_think}`);
+
+        if (frst_think === -1 && frst_close_think === -1) {
+            finished = 1;
+            break;
+        } else if (frst_think === -1 && frst_close_think > -1) {
+            // Don't need to move index here.
+            content = gemma4_31B_replaceFromIndex(content, '</think>', '<|EXTRA_CLOSING_THINK|>', mv_index);
+            mv_index = frst_close_think + 23;
+        } else if (frst_close_think === -1 && frst_think > -1) {
+            content = gemma4_31B_replaceFromIndex(content, '<think>', '<|UNCLOSED_THINK|>', mv_index);
+            mv_index = frst_think + 18;
+        } else if (second_think !== -1 && frst_close_think !== -1 && frst_close_think > second_think) {
+            content = gemma4_31B_replaceFromIndex(content, '<think>', '<|UNCLOSED_THINK|>', mv_index);
+            mv_index = frst_think + 18;
         } else {
-            if (next_input < next_output && next_input < next_system) {
-                content = content.replace('{{[INPUT]}}', '<div class="Message"><p class="User-MSG">')
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[OUTPUT]}}')
-                temp3 = content.indexOf('{{[SYSTEM]}}')
-                if (temp1 == -1) {
-                    if (temp2 < temp3) {
-                        content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                    } else {
-                        content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                    }
-                } else {
-                    if (temp1 < temp2 && temp1 < temp3) {
-                        content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                    } else if (temp2 < temp1 && temp2 < temp3) {
-                        content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                    } else {
-                        content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                    }
-                }
-            } else if (next_output < next_input && next_output < next_system) {
-                content = content.replace('{{[OUTPUT]}}', '<div class="Message"><p class="LLM-MSG">')
-                content = content.replace('<think>', '<details><summary>LLM-Reasoning</summary><span class="LLM-Reasoning">')
-                content = content.replace('</think>', '</span></details><span class="LLM-Output">')
-
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[OUTPUT]}}')
-                temp3 = content.indexOf('{{[SYSTEM]}}')
-                if (temp2 == -1) {
-                    if (temp1 < temp3) {
-                        content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                    } else {
-                        content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                    }
-                } else {
-                    if (temp1 < temp2 && temp1 < temp3) {
-                        content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                    } else if (temp2 < temp1 && temp2 < temp3) {
-                        content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                    } else {
-                        content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                    }
-                }
+            if (frst_close_think < frst_think) {
+                content = gemma4_31B_replaceFromIndex(content, '</think>', '<|MALFORMED_CLOSING_THINK|>', mv_index);
+                mv_index = frst_think + 27;
             } else {
-                content = content.replace('{{[SYSTEM]}}', '<div class="Message"><p class="System-MSG">')
-                temp1 = content.indexOf('{{[INPUT]}}')
-                temp2 = content.indexOf('{{[OUTPUT]}}')
-                temp3 = content.indexOf('{{[SYSTEM]}}')
-
-                if (temp3 == -1) {
-                    if (temp1 < temp2) {
-                        content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                    } else {
-                        content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                    }
-                } else {
-                    if (temp1 < temp2 && temp1 < temp3) {
-                        content = content.replace('{{[INPUT]}}', '</span></p></div>{{[INPUT]}}');
-                    } else if (temp2 < temp1 && temp2 < temp3) {
-                        content = content.replace('{{[OUTPUT]}}', '</span></p></div>{{[OUTPUT]}}');
-                    } else {
-                        content = content.replace('{{[SYSTEM]}}', '</span></p></div>{{[SYSTEM]}}');
-                    }
-                }
+                mv_index = frst_close_think + 8;
             }
         }
     }
-    sessionChatHTML.innerHTML = content;
+
+    let mostRecentType = '';
+    let lastsetlabel = '';
+    let numThinks = gemma4_31B_countStr(content, "<think>")
+    let prevdex = 0;
+    for (let index=0; index < numThinks; index++) {
+        let curdex = content.indexOf('<think>', prevdex);
+
+        let closingdex = content.indexOf('</think>', curdex);
+        let next_output = content.indexOf('{{[OUTPUT]}}', prevdex);
+        let next_system = content.indexOf('{{[SYSTEM]}}', prevdex);
+        let next_input = content.indexOf('{{[INPUT]}}', prevdex);
+
+        if (curdex === -1) {
+            console.log('ABORTING');
+            break
+        }
+
+        // If any are less than the index, find the one that happens most recently
+        if ((next_system !== -1 && next_system < curdex) || (next_output !== -1 && next_output < curdex) || (next_input !== -1 && next_input < curdex)) {
+            if (next_system !== -1 && next_system < curdex &&  (next_system > next_output || next_output === -1 || next_output > curdex) && (next_system > next_input || next_input === -1 || next_input > curdex)) {
+                mostRecentType = 'System';
+            } else if (next_output !== -1 && next_output < curdex && (next_output > next_system || next_system === -1 || next_system > curdex) && (next_output > next_input || next_input === -1 || next_input > curdex)) {
+                mostRecentType = 'Output';
+            } else if (next_input !== -1 && next_input < curdex &&  (next_input > next_output || next_output === -1 || next_output > curdex) && (next_input > next_system || next_system === -1 || next_system > curdex)) {
+                mostRecentType = 'Input';
+            }
+        } else {
+            // To land in this loop, they must all be happening after curdex, meaning we need to look at the last used label.
+            if (lastsetlabel === 'System') {
+                mostRecentType = 'System';
+            } else if (lastsetlabel === 'Input') {
+                mostRecentType = 'Input';
+            } else if (lastsetlabel === 'Output') {
+                mostRecentType = 'Output';
+            }
+        }
+
+        let name_to_use = ''
+        if (mostRecentType === 'System') {
+            name_to_use = 'System-Reasoning';
+        } else if (mostRecentType === 'Input') {
+            name_to_use = 'User-Reasoning';
+        } else if (mostRecentType === 'Output') {
+            name_to_use = 'LLM-Reasoning';
+        }
+
+        content = think_replace(content, name_to_use, curdex, closingdex);
+
+        prevdex = curdex;
+    }
+
+    mv_index = 0;
+    for (let index=0; index<potentialMSGs; index++) {
+        let next_output = content.indexOf('{{[OUTPUT]}}');
+        let next_system = content.indexOf('{{[SYSTEM]}}');
+        let next_input = content.indexOf('{{[INPUT]}}');
+
+        if (next_system === -1 && next_output === -1 && next_input === -1) {
+            break;
+        }
+
+        let templateMSG = '';
+        let mainDivName = '';
+        let secondDivName = '';
+        let prev_index = next_output;
+
+        if (next_output !== -1 && (next_input === -1 || next_output < next_input) && (next_system === -1 || next_output < next_system)) {
+            templateMSG = '{{[OUTPUT]}}';
+            mainDivName = 'LLM-MSG';
+            secondDivName = 'LLM-Output';
+            prev_index = next_output;
+        } else if (next_input !== -1 && (next_output === -1 || next_input < next_output) && (next_system === -1 || next_input < next_system)) {
+            templateMSG = '{{[INPUT]}}';
+            mainDivName = 'User-MSG';
+            secondDivName = 'User-Prompt';
+            prev_index = next_input;
+        } else if (next_system !== -1 && (next_output === -1 || next_system < next_output) && (next_input === -1 || next_system < next_input)) {
+            templateMSG = '{{[SYSTEM]}}';
+            mainDivName = 'System-MSG';
+            secondDivName = 'System-Prompt';
+            prev_index = next_system;
+        } else {
+            console.log(`UNPLANNED FOR????? We slipped past the break; Index: ${index}; Output: ${next_output}; Input: ${next_input}; System: ${next_system}`);
+            break;
+        }
+
+
+        content = content.replace(templateMSG, `<div class="Message"><div class="${mainDivName}">`);
+        let min_short_index = -1;
+        next_output = content.indexOf('{{[OUTPUT]}}');
+        next_system = content.indexOf('{{[SYSTEM]}}');
+        next_input = content.indexOf('{{[INPUT]}}');
+
+
+        let next_close_span = content.indexOf('</details>', prev_index);
+        let anchor = '';
+
+        if (next_output !== -1 && (next_input === -1 || next_output < next_input) && (next_system === -1 || next_output < next_system)) {
+            anchor = '{{[OUTPUT]}}';
+            min_short_index = next_output;
+        } else if (next_input !== -1 && (next_output === -1 || next_input < next_output) && (next_system === -1 || next_input < next_system)) {
+            anchor = '{{[INPUT]}}';
+            min_short_index = next_input;
+        } else if (next_system !== -1 && (next_output === -1 || next_system < next_output) && (next_input === -1 || next_system < next_input)) {
+            anchor = '{{[SYSTEM]}}';
+            min_short_index = next_system;
+        }
+        if (anchor !== '') {
+            if (next_close_span === -1 || next_close_span > min_short_index) {
+                content = gemma4_31B_replaceFromIndex(content, `<div class="Message"><div class="${mainDivName}">`, `<div class="Message"><div class="${mainDivName}"><span class="${secondDivName}">`, prev_index);
+                content = gemma4_31B_replaceFromIndex(content, anchor, `</span></div></div>${anchor}`, prev_index);
+            } else {
+                content = gemma4_31B_replaceFromIndex(content, '</details>', `</details><span class="${secondDivName}">`, prev_index);
+                content = gemma4_31B_replaceFromIndex(content, anchor, `</span></div></div>${anchor}`, prev_index);
+            }
+        } else {
+            if (next_close_span === -1 || next_close_span > min_short_index) {
+                content = gemma4_31B_replaceFromIndex(content, `<div class="Message"><div class="${mainDivName}">`, `<div class="Message"><div class="${mainDivName}"><span class="${secondDivName}">`, prev_index);
+            } else {
+                content = gemma4_31B_replaceFromIndex(content, '</details>', `</details><span class="${secondDivName}">`, prev_index);
+            }
+            content += '</span></div></div>'
+        }
+    }
+
+    sessionChatHTML.innerHTML = gemma4_31B_escape_innerhtml(content);
     sessionChatHTML.style.display = 'block';
     sessionChat.style.display = 'none';
 
