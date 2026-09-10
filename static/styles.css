@@ -40,7 +40,6 @@ main {
   table-layout: fixed;
   font-family: monospace;
   border-collapse: collapse;
-  font-family: monospace;
   flex: 4;
 }
 
@@ -84,7 +83,6 @@ button {
     border-top: 2px solid var(--color-accent);
     border-bottom: 2px solid var(--color-accent);
     border-color: var(--color-accent);
-    color: var(--color-accent);
     font-size: medium;
     cursor: pointer;
 }
@@ -113,7 +111,7 @@ button:hover {
     border-right: 1px solid currentColor;
 }
 
-#session-chat, session-chat-html {
+#session-chat {
     position: relative;
     width: 85%;
     height: 65vh;
@@ -141,7 +139,7 @@ button:hover {
 }
 
 .System-MSG {
-    color: #ff000;
+    color: #ff0000;
     border-bottom: 2px solid var(--color-message-border-bar);
 }
 

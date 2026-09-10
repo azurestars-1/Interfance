@@ -2,9 +2,11 @@ const input = document.querySelector("#file-upload");
 const fileName = document.querySelector("#file-name");
 const sessionLoaderButton = document.querySelector("#session-loader-button");
 const fakeLoaderButton = document.querySelector("#FakeButton");
-const mainbody = document.querySelector("#MainBody");
+const MainBody = document.querySelector("#MainBody");
 const sessionChat = document.querySelector("#session-chat");
 const sessionChatHTML = document.querySelector("#session-chat-html");
+const messageSubmitBTN = document.querySelector('#message-button');
+const messageSubmitInput = document.querySelector("#message-input");
 
 function updateSessionSelection() {
     const hasFile = input.files.length > 0;
@@ -24,7 +26,7 @@ function sessionChatFocus() {
     sessionChat.style.display = 'block';
     sessionChat.focus();
 }
-function sessionChatFocus_HTMLClick(event) {
+function sessionChatFocus_HTMLClick() {
 
     sessionChatHTML.innerHTML = '';
     sessionChatHTML.style.display = 'none';
@@ -79,15 +81,15 @@ function think_replace(initialText, interiorName, index, secondIndex) {
     return gemma4_31B_replaceFromIndex(initialText, '</think>', '</span></details>', secondIndex);
 }
 
-function sessionChatUnFocused() {
+async function sessionChatUnFocused() {
     let content = sessionChat.value;
     let potentialMSGs = gemma4_31B_countStr(content, "{{[OUTPUT]}}") + gemma4_31B_countStr(content, "{{[INPUT]}}") + gemma4_31B_countStr(content, "{{[SYSTEM]}}")
 
     let finished = 0;
     let mv_index = 0;
-    while (finished===0) {
+    while (finished === 0) {
         let frst_think = content.indexOf('<think>', mv_index);
-        let second_think = content.indexOf('<think>', frst_think+7);
+        let second_think = content.indexOf('<think>', frst_think + 7);
         let frst_close_think = content.indexOf('</think>', mv_index);
         //console.log('OPEN: ' + `${frst_think}` + '; CLOSE: ' + `${frst_close_think}`);
 
@@ -118,7 +120,7 @@ function sessionChatUnFocused() {
     let lastsetlabel = '';
     let numThinks = gemma4_31B_countStr(content, "<think>")
     let prevdex = 0;
-    for (let index=0; index < numThinks; index++) {
+    for (let index = 0; index < numThinks; index++) {
         let curdex = content.indexOf('<think>', prevdex);
 
         let closingdex = content.indexOf('</think>', curdex);
@@ -133,11 +135,11 @@ function sessionChatUnFocused() {
 
         // If any are less than the index, find the one that happens most recently
         if ((next_system !== -1 && next_system < curdex) || (next_output !== -1 && next_output < curdex) || (next_input !== -1 && next_input < curdex)) {
-            if (next_system !== -1 && next_system < curdex &&  (next_system > next_output || next_output === -1 || next_output > curdex) && (next_system > next_input || next_input === -1 || next_input > curdex)) {
+            if (next_system !== -1 && next_system < curdex && (next_system > next_output || next_output === -1 || next_output > curdex) && (next_system > next_input || next_input === -1 || next_input > curdex)) {
                 mostRecentType = 'System';
             } else if (next_output !== -1 && next_output < curdex && (next_output > next_system || next_system === -1 || next_system > curdex) && (next_output > next_input || next_input === -1 || next_input > curdex)) {
                 mostRecentType = 'Output';
-            } else if (next_input !== -1 && next_input < curdex &&  (next_input > next_output || next_output === -1 || next_output > curdex) && (next_input > next_system || next_system === -1 || next_system > curdex)) {
+            } else if (next_input !== -1 && next_input < curdex && (next_input > next_output || next_output === -1 || next_output > curdex) && (next_input > next_system || next_system === -1 || next_system > curdex)) {
                 mostRecentType = 'Input';
             }
         } else {
@@ -165,8 +167,7 @@ function sessionChatUnFocused() {
         prevdex = curdex;
     }
 
-    mv_index = 0;
-    for (let index=0; index<potentialMSGs; index++) {
+    for (let index = 0; index < potentialMSGs; index++) {
         let next_output = content.indexOf('{{[OUTPUT]}}');
         let next_system = content.indexOf('{{[SYSTEM]}}');
         let next_input = content.indexOf('{{[INPUT]}}');
@@ -200,7 +201,6 @@ function sessionChatUnFocused() {
             break;
         }
 
-
         content = content.replace(templateMSG, `<div class="Message"><div class="${mainDivName}">`);
         let min_short_index = -1;
         next_output = content.indexOf('{{[OUTPUT]}}');
@@ -221,23 +221,19 @@ function sessionChatUnFocused() {
             anchor = '{{[SYSTEM]}}';
             min_short_index = next_system;
         }
-        if (anchor !== '') {
-            if (next_close_span === -1 || next_close_span > min_short_index) {
-                content = gemma4_31B_replaceFromIndex(content, `<div class="Message"><div class="${mainDivName}">`, `<div class="Message"><div class="${mainDivName}"><span class="${secondDivName}">`, prev_index);
-                content = gemma4_31B_replaceFromIndex(content, anchor, `</span></div></div>${anchor}`, prev_index);
-            } else {
-                content = gemma4_31B_replaceFromIndex(content, '</details>', `</details><span class="${secondDivName}">`, prev_index);
-                content = gemma4_31B_replaceFromIndex(content, anchor, `</span></div></div>${anchor}`, prev_index);
-            }
-        } else {
-            if (next_close_span === -1 || next_close_span > min_short_index) {
-                content = gemma4_31B_replaceFromIndex(content, `<div class="Message"><div class="${mainDivName}">`, `<div class="Message"><div class="${mainDivName}"><span class="${secondDivName}">`, prev_index);
-            } else {
-                content = gemma4_31B_replaceFromIndex(content, '</details>', `</details><span class="${secondDivName}">`, prev_index);
-            }
-            content += '</span></div></div>'
-        }
     }
+
+    const response = await fetch('/processAtIndex', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+                'content': content,
+        })
+    });
+    const result = await response.json();
+    content = result.content;
 
     sessionChatHTML.innerHTML = gemma4_31B_escape_innerhtml(content);
     sessionChatHTML.style.display = 'block';
@@ -245,6 +241,93 @@ function sessionChatUnFocused() {
 
 }
 
+function build_message_template() {
+    const message_arr = document.querySelectorAll('div.Message');
+    const message_dict = [];
+    message_arr.forEach(element => {
+        let element_children = element.children[0];
+
+        let split_arr = [];
+        let mainContent = '';
+        let mainReasoning = '';
+        let role = 'UNSET-ROLE';
+        let reason_name = 'UNSET-REASONING';
+        let output_name = 'UNSET-OUTPUT'
+
+
+        if (element_children.className === 'System-MSG') {
+            role = 'system';
+            reason_name = 'System-Reasoning';
+            output_name = 'System-Prompt';
+        } else if (element_children.className === 'User-MSG') {
+            role = 'user';
+            reason_name = 'User-Reasoning';
+            output_name = 'User-Prompt';
+        } else if (element_children.className === 'LLM-MSG') {
+            role = 'assistant';
+            reason_name = 'LLM-Reasoning';
+            output_name = 'LLM-Output';
+        }
+        let elements_children = [...element_children.children];
+
+        elements_children.forEach(child_element => {
+            if (child_element.tagName === 'DETAILS') {
+                let sub_children = [...child_element.children];
+                sub_children.forEach(subchild_child => {
+                    if (subchild_child.className === reason_name) {
+                        split_arr.push({'type':'Reasoning', 'content':subchild_child.textContent});
+                        mainReasoning += subchild_child.textContent;
+                    }
+                });
+           } else if (child_element.className === output_name) {
+                split_arr.push({'type':'Text', 'content':child_element.textContent});
+                mainContent += child_element.textContent;
+           }
+        });
+        console.log(`[${mainContent}]; [${mainReasoning}]`);
+        message_dict.push({
+            'INF_TYPE': 'WEBUI',
+            'role': role,
+            'split_arr': split_arr,
+        });
+
+    });
+
+    return message_dict;
+}
+
+async function sendForGeneration() {
+    const temp_dict = build_message_template();
+    temp_dict.push({
+        'INF_TYPE': 'WEBUI',
+        'role': 'user',
+        'split_arr': [{'type': 'Text', 'content': messageSubmitInput.value}],
+    });
+    console.log(temp_dict);
+    console.log(messageSubmitInput.value);
+
+
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'template': temp_dict,
+            })
+        });
+        const result = await response.json();
+        sessionChat.value = result.content;
+        sessionChatFocus();
+        await sessionChatUnFocused();
+        messageSubmitInput.value = '';
+
+    } catch (error) {
+        console.error("Error sending prompt for generation:", error);
+    }
+
+}
 
 async function sendSessionToFlask() {
     console.log(input);
@@ -289,12 +372,10 @@ async function sendSessionToFlask() {
                 update_str += `${result.content.session[index].content}`;
             }
         }
-        sessionChat.textContent = update_str;
+        sessionChat.value = update_str;
         sessionChatFocus();
-        sessionChatUnFocused();
+        await sessionChatUnFocused();
 
-        console.log(result);
-        console.log(result.content.data);
     } catch (error) {
         console.error("Error uploading file:", error);
     }
@@ -306,6 +387,7 @@ async function sendSessionToFlask() {
 // Event Listeners
 input.addEventListener("change", updateSessionSelection);
 sessionLoaderButton.addEventListener("click", sendSessionToFlask);
+messageSubmitBTN.addEventListener("click", sendForGeneration);
 sessionChat.addEventListener("focus", sessionChatFocus);
 sessionChatHTML.addEventListener("dblclick", sessionChatFocus_HTMLClick);
 sessionChat.addEventListener("blur", sessionChatUnFocused);
