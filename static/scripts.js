@@ -35,6 +35,25 @@ function sessionChatFocus_HTMLClick() {
 }
 
 // Attribution to Gemma4 31B for this function
+function gemma4_31B_interceptTab(event, selector) {
+    if (event.key === 'Tab') {
+        event.preventDefault();
+
+        // Get the current cursor position
+        const start = selector.selectionStart;
+        const end = selector.selectionEnd;
+
+        // Set the value to: text before cursor + tab + text after cursor
+        selector.value = selector.value.substring(0, start) +
+                         "\t" +
+                         selector.value.substring(end);
+
+        // Put the cursor back in the right place (after the inserted tab)
+        selector.selectionStart = selector.selectionEnd = start + 1;
+  }
+}
+
+// Attribution to Gemma4 31B for this function
 function gemma4_31B_countStr(text, search) {
     if (!search) {
         return 0;
@@ -49,10 +68,12 @@ function gemma4_31B_countStr(text, search) {
     return count
 }
 
+// Attribution to Gemma4 31B for this function
 function gemma4_31B_replaceFromIndex(initialText, searchStr, replacement, index) {
     return initialText.slice(0, index) + initialText.slice(index).replace(searchStr, replacement);
 }
 
+// Attribution to Gemma4 31B for this function
 function gemma4_31B_escape_innerhtml(longString) {
     const allowedTags = ['div', 'span', 'details', 'summary'];
     // Create a regex pattern: (div|span|details|summary)
@@ -284,7 +305,6 @@ function build_message_template() {
                 mainContent += child_element.textContent;
            }
         });
-        console.log(`[${mainContent}]; [${mainReasoning}]`);
         message_dict.push({
             'INF_TYPE': 'WEBUI',
             'role': role,
@@ -303,9 +323,8 @@ async function sendForGeneration() {
         'role': 'user',
         'split_arr': [{'type': 'Text', 'content': messageSubmitInput.value}],
     });
-    console.log(temp_dict);
-    console.log(messageSubmitInput.value);
-
+    messageSubmitInput.disabled = true;
+    messageSubmitBTN.disabled = true;
 
     try {
         const response = await fetch('/generate', {
@@ -319,9 +338,11 @@ async function sendForGeneration() {
         });
         const result = await response.json();
         sessionChat.value = result.content;
-        sessionChatFocus();
         await sessionChatUnFocused();
         messageSubmitInput.value = '';
+        messageSubmitInput.disabled = false;
+        messageSubmitBTN.disabled = false;
+        messageSubmitInput.focus();
 
     } catch (error) {
         console.error("Error sending prompt for generation:", error);
@@ -330,8 +351,6 @@ async function sendForGeneration() {
 }
 
 async function sendSessionToFlask() {
-    console.log(input);
-    console.log(input.files);
     const file = input.files[0];
 
     if (!file) {
@@ -392,6 +411,8 @@ sessionChat.addEventListener("focus", sessionChatFocus);
 sessionChatHTML.addEventListener("dblclick", sessionChatFocus_HTMLClick);
 sessionChat.addEventListener("blur", sessionChatUnFocused);
 
+messageSubmitInput.addEventListener("keydown", (event) => {gemma4_31B_interceptTab(event, messageSubmitInput)});
+sessionChat.addEventListener("keydown", (event) => {gemma4_31B_interceptTab(event, sessionChat)});
 
 // Set Initial States
 updateSessionSelection();
