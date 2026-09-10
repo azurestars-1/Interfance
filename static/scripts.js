@@ -303,22 +303,23 @@ function build_message_template() {
             if (child_element.tagName === 'DETAILS') {
                 let sub_children = [...child_element.children];
                 sub_children.forEach(subchild_child => {
-                    if (subchild_child.className === reason_name) {
+                    if (subchild_child.className === reason_name && subchild_child.textContent.length > 0) {
                         split_arr.push({'type':'Reasoning', 'content':subchild_child.textContent});
                         mainReasoning += subchild_child.textContent;
                     }
                 });
-           } else if (child_element.className === output_name) {
+           } else if (child_element.className === output_name && child_element.textContent.length > 0) {
                 split_arr.push({'type':'Text', 'content':child_element.textContent});
                 mainContent += child_element.textContent;
            }
         });
-        message_dict.push({
-            'INF_TYPE': 'WEBUI',
-            'role': role,
-            'split_arr': split_arr,
-        });
-
+        if (split_arr.length > 0) {
+            message_dict.push({
+                'INF_TYPE': 'WEBUI',
+                'role': role,
+                'split_arr': split_arr,
+            });
+        }
     });
 
     return message_dict;
@@ -383,12 +384,15 @@ async function sessionSave() {
 }
 
 async function sendForGeneration() {
+    await sessionChatUnFocused();
     const temp_dict = build_message_template();
-    temp_dict.push({
-        'INF_TYPE': 'WEBUI',
-        'role': 'user',
-        'split_arr': [{'type': 'Text', 'content': messageSubmitInput.value}],
-    });
+    if (messageSubmitInput.value.length > 0) {
+        temp_dict.push({
+            'INF_TYPE': 'WEBUI',
+            'role': 'user',
+            'split_arr': [{'type': 'Text', 'content': messageSubmitInput.value}],
+        });
+    }
     messageSubmitInput.disabled = true;
     messageSubmitBTN.disabled = true;
 

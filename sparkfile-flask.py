@@ -195,8 +195,7 @@ def convert_format(data):
                 active_type = split_type
 
             if active_type != split_type:
-                if (split_type == 'Text' and len(temp_text) > 0) or (
-                        split_type == 'Reasoning' and len(temp_reasoning) > 0):
+                if len(temp_text) > 0 and ((split_type == 'Text') or (split_type == 'Reasoning' and len(temp_reasoning) > 0)):
                     temp_dict = {
                         'role': role,
                         'content': '\n\n'.join(temp_text)
@@ -232,11 +231,7 @@ def convert_format(data):
                     'reasoning': '\n\n'.join(temp_reasoning)
                 }
                 built_arr.append(temp_dict)
-            else:
-                built_arr.append({
-                    'role': role,
-                    'content': ''
-                })
+
     return built_arr
 
 @app.route('/generate', methods=['POST'])
@@ -249,8 +244,13 @@ def generate():
 
         temp = send_for_message(built_arr).get('choices')[0].get('message')
         sel_role = temp.get('role')
-        recieved_message = temp.get('content').lstrip('\n')
-        reasoning = temp.get('reasoning').lstrip('\n')
+        recieved_message = 'None'
+        reasoning = 'None'
+        if temp.get('content') is not None:
+            recieved_message = temp.get('content').lstrip('\n')
+        if temp.get('reasoning') is not None:
+            reasoning = temp.get('reasoning').lstrip('\n')
+
         print(f'Recieved Reasoning: {reasoning}')
         print(f'Recieved Message: {recieved_message}')
 
