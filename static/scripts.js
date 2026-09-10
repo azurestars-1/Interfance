@@ -503,7 +503,6 @@ async function sendSessionToFlask() {
                 try {
                     let finstr = '';
                     let temp = sessionChat.value = result.content.data;
-                    console.log(temp);
                     temp.forEach(element => {
                         let mster_str = '';
                         if (element.INF_TYPE === 'PROMPT') {
@@ -518,9 +517,9 @@ async function sendSessionToFlask() {
                                 mster_str += '{{[SYSTEM]}}'
                             }
                             if ('reasoning' in msg) {
-                                mster_str += `<think>${element.reasoning}</think>`
+                                mster_str += `<think>${msg.reasoning}</think>`
                             }
-                            mster_str += `${element.content}`;
+                            mster_str += `${msg.content}`;
                         }
                         finstr += '\n' + mster_str.trim();
                     });
