@@ -119,21 +119,29 @@ def processAtIndex():
             mainDivName = ''
             secondDivName = ''
             reasoningName = ''
+            tagClass = ''
+            tagName = ''
             if message.startswith('<div class="LLM-MSG">'):
                 mainDivName = 'LLM-MSG'
                 secondDivName = 'LLM-Output'
                 reasoningName = 'LLM-Reasoning'
+                tagClass = 'LLM-Tag'
+                tagName = 'LLM'
             elif message.startswith('<div class="User-MSG">'):
                 mainDivName = 'User-MSG'
                 secondDivName = 'User-Prompt'
                 reasoningName = 'User-Reasoning'
+                tagClass = 'User-Tag'
+                tagName = 'User'
             elif message.startswith('<div class="System-MSG">'):
                 mainDivName = 'System-MSG'
                 secondDivName = 'System-Prompt'
                 reasoningName = 'System-Reasoning'
+                tagClass = 'System-Tag'
+                tagName = 'System'
             else:
-                if message != '':
-                    fin_arr.append('<div class="Message">'+message)
+                if message != '' and message != '\n':
+                    fin_arr.append('<div class="Message"><div class="System-MSG"><span class="System-Prompt">'+message+'</span></div></div>')
                 continue
 
             rem_front = message.split(f'<div class="{mainDivName}">')[-1]
@@ -143,17 +151,17 @@ def processAtIndex():
                 resStr = f'<summary>{reasoningName}</summary><span class="{reasoningName}">'
                 if not splitter.startswith(resStr):
                     if len(splitter) > 1:
-                        arav.append(f'<span class ="{secondDivName}">{splitter}</span>')
+                        arav.append(f'<span class ="{secondDivName}">{splitter.strip()}</span>')
                 else:
                     rem_end = splitter.split('</details>')
                     res_content = rem_end[0].split(resStr)[-1].split('</span>')[0]
-                    arav.append(f'<details><summary>{reasoningName}</summary><span class="{reasoningName}">{res_content}</span></details>')
+                    arav.append(f'<details><summary>{reasoningName}</summary><span class="{reasoningName}">{res_content.strip()}</span></details>')
                     if len(rem_end) > 1:
                         # We got regular text right after
-                        arav.append(f'<span class="{secondDivName}">{rem_end[1]}</span>')
+                        arav.append(f'<span class="{secondDivName}">{rem_end[1].strip()}</span>')
             if len(arav) > 1 and arav[-1] == f'<span class="{secondDivName}">\n</span>':
                 arav = arav[:-1]
-            fin_arr.append(f'<div class="Message"><div class={mainDivName}>'+''.join(arav)+'</div></div>')
+            fin_arr.append(f'<div class="Message"><div class="roleContainer"><span class={tagClass}>{tagName}</span></div><div class={mainDivName}>'+''.join(arav)+'</div></div>')
         fin_arr = '\n'.join(fin_arr)
         return jsonify({'content': fin_arr}), 200
     except Exception as e:
@@ -161,67 +169,82 @@ def processAtIndex():
         return jsonify({'error': str(e)}), 400
 
 
+@app.route('/convert_to_openAI_format', methods=['POST'])
+def convert_to_openAI_format():
+    try:
+        data = request.get_json()
+        return jsonify({'content': convert_format(data)}), 200
+    except Exception as e:
+        print(f'Caught {e}')
+        return jsonify({'error': str(e)}), 400
+
+def convert_format(data):
+    active_template = data.get('template')
+    built_arr = []
+    for entry in active_template:
+        role = entry.get('role')
+        split_arr = entry.get('split_arr')
+        temp_reasoning = []
+        temp_text = []
+        active_type = 'UNSET-ROLE'
+        added_at_least_one = False
+        for index in range(len(split_arr)):
+            split_type = split_arr[index].get('type')
+            cnt = split_arr[index].get('content')
+            if active_type == 'UNSET-ROLE':
+                active_type = split_type
+
+            if active_type != split_type:
+                if (split_type == 'Text' and len(temp_text) > 0) or (
+                        split_type == 'Reasoning' and len(temp_reasoning) > 0):
+                    temp_dict = {
+                        'role': role,
+                        'content': '\n\n'.join(temp_text)
+                    }
+                    if len(temp_reasoning) > 0 and role == 'assistant':
+                        # Including user-reasoning/system-reasoning will throw provider errors
+                        temp_dict['reasoning'] = '\n\n'.join(temp_reasoning)
+                    built_arr.append(temp_dict)
+                    temp_text = []
+                    temp_reasoning = []
+                    added_at_least_one = True
+                active_type = split_type
+
+            if split_type == 'Reasoning':
+                temp_reasoning.append(cnt)
+            elif split_type == 'Text':
+                temp_text.append(cnt)
+        t_len = len(temp_text)
+        r_len = len(temp_reasoning)
+        if role != 'UNSET-ROLE':
+            if not added_at_least_one or t_len > 0:
+                temp_dict = {
+                    'role': role,
+                    'content': '\n\n'.join(temp_text)
+                }
+                if r_len > 0 and role == 'assistant':
+                    temp_dict['reasoning'] = '\n\n'.join(temp_reasoning)
+                built_arr.append(temp_dict)
+            elif r_len > 0 and role == 'assistant':
+                temp_dict = {
+                    'role': role,
+                    'content': '',
+                    'reasoning': '\n\n'.join(temp_reasoning)
+                }
+                built_arr.append(temp_dict)
+            else:
+                built_arr.append({
+                    'role': role,
+                    'content': ''
+                })
+    return built_arr
+
 @app.route('/generate', methods=['POST'])
 def generate():
     try:
         data = request.get_json()
         active_template = data.get('template')
-        built_arr = []
-        for entry in active_template:
-            role = entry.get('role')
-            split_arr = entry.get('split_arr')
-            temp_reasoning = []
-            temp_text = []
-            active_type = 'UNSET-ROLE'
-            added_at_least_one = False
-            for index in range(len(split_arr)):
-                split_type = split_arr[index].get('type')
-                cnt = split_arr[index].get('content')
-                if active_type == 'UNSET-ROLE':
-                    active_type = split_type
-
-                if active_type != split_type:
-                    if (split_type == 'Text' and len(temp_text) > 0) or (split_type == 'Reasoning' and len(temp_reasoning) > 0):
-                        temp_dict = {
-                            'role': role,
-                            'content': '\n\n'.join(temp_text)
-                        }
-                        if len(temp_reasoning) > 0 and role == 'assistant':
-                            # Including user-reasoning/system-reasoning will throw provider errors
-                            temp_dict['reasoning'] = '\n\n'.join(temp_reasoning)
-                        built_arr.append(temp_dict)
-                        temp_text = []
-                        temp_reasoning = []
-                        added_at_least_one = True
-                    active_type = split_type
-
-                if split_type == 'Reasoning':
-                    temp_reasoning.append(cnt)
-                elif split_type == 'Text':
-                    temp_text.append(cnt)
-            t_len = len(temp_text)
-            r_len = len(temp_reasoning)
-            if role != 'UNSET-ROLE':
-                if not added_at_least_one or t_len > 0:
-                    temp_dict = {
-                        'role': role,
-                        'content': '\n\n'.join(temp_text)
-                    }
-                    if r_len > 0 and role == 'assistant':
-                        temp_dict['reasoning'] = '\n\n'.join(temp_reasoning)
-                    built_arr.append(temp_dict)
-                elif r_len > 0 and role == 'assistant':
-                    temp_dict = {
-                        'role': role,
-                        'content': '',
-                        'reasoning': '\n\n'.join(temp_reasoning)
-                    }
-                    built_arr.append(temp_dict)
-                else:
-                    built_arr.append({
-                        'role': role,
-                        'content': ''
-                    })
+        built_arr = convert_format(data)
         #print(f'Built Template Data: {built_arr}')
 
         temp = send_for_message(built_arr).get('choices')[0].get('message')
@@ -267,6 +290,23 @@ def generate():
     except Exception as e:
         print(f'Error: {e}')
         return jsonify({'error': str(e)}), 400
+
+@app.route('/RequestFile', methods=['POST'])
+def request_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    filename = file.filename
+
+    try:
+        data = json.load(file)
+        return jsonify({"message": f"Session read successfully!", "content": {"data": data}}), 200
+    except json.JSONDecodeError:
+        return jsonify({"error": f"Invalid JSON in [{filename}]"}), 400
+
+
 
 @app.route('/RequestSession', methods=['POST'])
 def request_session():

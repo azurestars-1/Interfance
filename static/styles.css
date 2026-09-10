@@ -29,7 +29,7 @@ main {
   padding: 0.25rem;
   margin-bottom: 1rem;
   display: flex;
-  gap: 15vw;
+  gap: 5vw;
   position: sticky;
   top: 0;
   z-index: 9999;
@@ -46,21 +46,25 @@ main {
   table-layout: fixed;
   font-family: monospace;
   border-collapse: collapse;
-  flex: 4;
+  flex: 5;
 }
 
 .session-picker-container {
-  flex: 2;
+  flex: 3;
+  display: flex;
   background-color: var(--color-bg-light-old);
-  padding: 1rem 3rem;
+  padding: 0rem 1.5rem;
 }
 
-#FakeButton {
+.left-container {
+    flex: 5;
+}
+.right-container {
+    flex: 4;
+}
+
+.FakeButton {
   padding: 1.86rem 1.5rem;
-}
-
-#session-loader-button {
-  padding: 1.25rem 1.5rem;
 }
 
 .load-file {
@@ -136,20 +140,41 @@ button:disabled {
     width: 75%;
     padding: 2vh 5vw;
     white-space: pre-wrap;
+    display: flex;
+    gap: 1vw;
+}
+
+.roleContainer {
+    flex: 1;
+    align-self: flex-start;
+    border-top: 2px solid var(--color-heading);
+}
+
+.User-Tag {
+    color: var(--color-accent);
+}
+.LLM-TAG {
+    color: var(--color-body);
+}
+.System-TAG {
+    color: #ff0000;
 }
 
 .User-MSG {
     color: var(--color-accent);
     border-bottom: 2px solid var(--color-message-border-bar);
+    flex: 19;
 }
 
 .LLM-MSG {
     border-bottom: 2px solid var(--color-message-border-bar);
+    flex: 19;
 }
 
 .System-MSG {
     color: #ff0000;
     border-bottom: 2px solid var(--color-message-border-bar);
+    flex: 19;
 }
 
 .LLM-Reasoning {

@@ -7,6 +7,9 @@ const sessionChat = document.querySelector("#session-chat");
 const sessionChatHTML = document.querySelector("#session-chat-html");
 const messageSubmitBTN = document.querySelector('#message-button');
 const messageSubmitInput = document.querySelector("#message-input");
+const clearSessionBTN = document.querySelector("#session-clear-button");
+const saveSessionBTN = document.querySelector("#session-saver-button");
+const formatRadio = document.querySelector("#save-format");
 
 function updateSessionSelection() {
     const hasFile = input.files.length > 0;
@@ -20,14 +23,12 @@ function updateSessionSelection() {
 }
 
 function sessionChatFocus() {
-
     sessionChatHTML.innerHTML = '';
     sessionChatHTML.style.display = 'none';
     sessionChat.style.display = 'block';
     sessionChat.focus();
 }
 function sessionChatFocus_HTMLClick() {
-
     sessionChatHTML.innerHTML = '';
     sessionChatHTML.style.display = 'none';
     sessionChat.style.display = 'block';
@@ -104,6 +105,12 @@ function think_replace(initialText, interiorName, index, secondIndex) {
 
 async function sessionChatUnFocused() {
     let content = sessionChat.value;
+
+    if (content.length < 1) {
+        return;
+    }
+
+
     let potentialMSGs = gemma4_31B_countStr(content, "{{[OUTPUT]}}") + gemma4_31B_countStr(content, "{{[INPUT]}}") + gemma4_31B_countStr(content, "{{[SYSTEM]}}")
 
     let finished = 0;
@@ -266,7 +273,8 @@ function build_message_template() {
     const message_arr = document.querySelectorAll('div.Message');
     const message_dict = [];
     message_arr.forEach(element => {
-        let element_children = element.children[0];
+        // We skip the role container
+        let element_children = element.children[1];
 
         let split_arr = [];
         let mainContent = '';
@@ -316,6 +324,63 @@ function build_message_template() {
     return message_dict;
 }
 
+function sessionClear() {
+    sessionChat.value = '';
+    sessionChatHTML.innerHTML = '';
+    sessionChat.style.display = 'block';
+    sessionChatHTML.style.display = 'none';
+    sessionChat.focus();
+}
+
+async function sessionSave() {
+    const selectedOption = document.querySelector('input[name="save-format"]:checked');
+    if (selectedOption) {
+        const value = selectedOption.value;
+
+        if (value === 'Plain-Text') {
+            const blob = new Blob([sessionChat.value], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "interfance_session.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (value === 'Interfance') {
+            let jsonned = JSON.stringify(build_message_template())
+            const blob = new Blob([jsonned], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "interfance_session.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (value === 'OAI') {
+            try {
+                const temp_dict = build_message_template();
+                const response = await fetch('/convert_to_openAI_format', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        'template': temp_dict,
+                    })
+                });
+                const result = await response.json();
+                const blob = new Blob([JSON.stringify(result.content)], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "interfance_session.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Error sending prompt for generation:", error);
+            }
+        }
+    }
+}
+
 async function sendForGeneration() {
     const temp_dict = build_message_template();
     temp_dict.push({
@@ -350,7 +415,7 @@ async function sendForGeneration() {
 
 }
 
-async function sendSessionToFlask() {
+async function sendSessionToFlask_old() {
     const file = input.files[0];
 
     if (!file) {
@@ -400,6 +465,37 @@ async function sendSessionToFlask() {
     }
 }
 
+async function sendSessionToFlask() {
+    const file = input.files[0];
+
+    if (!file) {
+        alert("Please select a file first!");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/RequestFile', {
+            method: 'POST',
+            body: formData
+            // Note: Do NOT set the 'Content-Type' header manually.
+            // The browser will automatically set it to 'multipart/form-data'
+            // with the correct boundary string.
+        });
+        const result = await response.json();
+
+        // NOT DONE
+
+        //TODO OBVIOUSLY
+        sessionChatFocus();
+        await sessionChatUnFocused();
+
+    } catch (error) {
+        console.error("Error uploading file:", error);
+    }
+}
 
 
 
@@ -410,6 +506,9 @@ messageSubmitBTN.addEventListener("click", sendForGeneration);
 sessionChat.addEventListener("focus", sessionChatFocus);
 sessionChatHTML.addEventListener("dblclick", sessionChatFocus_HTMLClick);
 sessionChat.addEventListener("blur", sessionChatUnFocused);
+
+clearSessionBTN.addEventListener("click", sessionClear);
+saveSessionBTN.addEventListener("click", sessionSave);
 
 messageSubmitInput.addEventListener("keydown", (event) => {gemma4_31B_interceptTab(event, messageSubmitInput)});
 sessionChat.addEventListener("keydown", (event) => {gemma4_31B_interceptTab(event, sessionChat)});

@@ -47,15 +47,31 @@
                 </tr>
             </table>
             <div class="session-picker-container">
-                <p>Select a Session to Load:</p>
-                <input type="file" id="file-upload" style="display:none;" accept=".json">
-                <label for="file-upload" class="load-file">
-                  Select Session
-                </label>
-                <span id="file-name">No session chosen</span>
-                <br />
-                <button id="session-loader-button" style="display:none">Load Session.</button>
-                <div id="FakeButton"></div>
+                <div class="left-container">
+                    <p>Select a Session to Load:</p>
+                    <input type="file" id="file-upload" style="display:none" accept=".json">
+                    <label for="file-upload" class="load-file">
+                      Select Session
+                    </label>
+                    <span id="file-name">No session chosen</span>
+                    <br />
+                    <button id="session-loader-button">Load Session.</button>
+                    <div id="FakeButton"></div>
+                </div>
+                <div class="right-container">
+                    <label class="radio-item">
+                      <input type="radio" name="save-format" value="OAI"> Open-AI
+                    </label>
+                    <label class="radio-item">
+                      <input type="radio" name="save-format" value="Interfance"> Interfance
+                    </label>
+                    <label class="radio-item">
+                      <input type="radio" name="save-format" value="Plain-Text"> Plain-Text
+                    </label>
+                    <button id="session-saver-button" style="display:block">Save Session.</button>
+                    <br />
+                    <button id="session-clear-button" style="display:block">Clear Session.</button>
+                </div>
             </div>
         </div>
         <div id="MainBody" style="display:none">
