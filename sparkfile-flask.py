@@ -291,6 +291,7 @@ def generate():
         print(f'Error: {e}')
         return jsonify({'error': str(e)}), 400
 
+
 @app.route('/RequestFile', methods=['POST'])
 def request_file():
     if 'file' not in request.files:
@@ -304,8 +305,16 @@ def request_file():
         data = json.load(file)
         return jsonify({"message": f"Session read successfully!", "content": {"data": data}}), 200
     except json.JSONDecodeError:
-        return jsonify({"error": f"Invalid JSON in [{filename}]"}), 400
-
+        try:
+            file.seek(0)
+            data = file.read().decode('utf-8')
+            return jsonify({"message": f"Session read successfully!", "content": {"data": data}}), 200
+        except UnicodeDecodeError:
+            return jsonify({"error": f"Could not decode [{filename}] as UTF-8 text"}), 400
+        except Exception as e:
+            return jsonify({"error": f"Unknown Handled Error [{e}]"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Unknown Handled Error [{e}]"}), 400
 
 
 @app.route('/RequestSession', methods=['POST'])

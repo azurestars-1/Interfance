@@ -325,6 +325,7 @@ function build_message_template() {
 }
 
 function sessionClear() {
+    MainBody.style.display = "block";
     sessionChat.value = '';
     sessionChatHTML.innerHTML = '';
     sessionChat.style.display = 'block';
@@ -415,56 +416,6 @@ async function sendForGeneration() {
 
 }
 
-async function sendSessionToFlask_old() {
-    const file = input.files[0];
-
-    if (!file) {
-        alert("Please select a file first!");
-        return;
-    }
-
-    const formData = new FormData();
-    // 'file' is the key Flask will use to find the file in request.files
-    formData.append('file', file);
-
-    try {
-        const response = await fetch('/RequestSession', {
-            method: 'POST',
-            body: formData
-            // Note: Do NOT set the 'Content-Type' header manually.
-            // The browser will automatically set it to 'multipart/form-data'
-            // with the correct boundary string.
-        });
-        const result = await response.json();
-
-        // No Attribution for LLMs past here
-        MainBody.style.display = "block";
-
-        const length = result.content.session.length
-        let update_str = "";
-        for (let index=0; index < length; index++) {
-            if (result.content.session[index].role === "assistant") {
-                update_str += "\n{{[OUTPUT]}}<think>";
-                update_str += `${result.content.session[index].reasoning}`;
-                update_str += "</think>";
-                update_str += `${result.content.session[index].content}`;
-            } else if (result.content.session[index].role === 'user'){
-                update_str += "\n{{[INPUT]}}";
-                update_str += `${result.content.session[index].content}`;
-            } else if (result.content.session[index].role === 'system'){
-                update_str += "\n{{[SYSTEM]}}";
-                update_str += `${result.content.session[index].content}`;
-            }
-        }
-        sessionChat.value = update_str;
-        sessionChatFocus();
-        await sessionChatUnFocused();
-
-    } catch (error) {
-        console.error("Error uploading file:", error);
-    }
-}
-
 async function sendSessionToFlask() {
     const file = input.files[0];
 
@@ -484,14 +435,106 @@ async function sendSessionToFlask() {
             // The browser will automatically set it to 'multipart/form-data'
             // with the correct boundary string.
         });
+
+        MainBody.style.display = "block";
         const result = await response.json();
 
-        // NOT DONE
+        try {
+            let finstr = '';
+            result.content.data.forEach(element => {
+                let mster_str = '';
+                let role = element.role;
+                if (role === 'user') {
+                    mster_str += '{{[INPUT]}}';
+                } else if (role === 'assistant') {
+                    mster_str += '{{[OUTPUT]}}';
+                } else if (role === 'system') {
+                    mster_str += '{{[SYSTEM]}}';
+                } else {
+                    mster_str += '{{[SYSTEM]}}';
+                }
 
-        //TODO OBVIOUSLY
-        sessionChatFocus();
-        await sessionChatUnFocused();
+                element.split_arr.forEach(entry => {
+                    let rtype = entry.type;
+                    if (rtype === 'Reasoning') {
+                        mster_str += `<think>{entry.content}</think>`;
+                    } else if (rtype === 'Text') {
+                        mster_str += `${entry.content}`;
+                    }
+                });
+                mster_str = mster_str.trim()
+                finstr += `\n${mster_str}`;
+            });
+            finstr = finstr.trim();
+            sessionChat.value = finstr;
+            await sessionChatUnFocused();
+        } catch (error) {
+            console.log(`Not an Interfance Save; ${error}`);
+            try {
+                let finstr = '';
+                result.content.data.forEach(element => {
+                    let mster_str = '';
+                    let role = element.role;
+                    if (role === 'user') {
+                        mster_str += '{{[INPUT]}}';
+                    } else if (role === 'assistant') {
+                        mster_str += '{{[OUTPUT]}}';
+                    } else if (role === 'system') {
+                        mster_str += '{{[SYSTEM]}}';
+                    } else {
+                        mster_str += '{{[SYSTEM]}}';
+                    }
 
+                    if ('reasoning' in element) {
+                        mster_str += `<think>${element.reasoning}</think>`
+                    }
+                    // purposeful to throw an error if this isn't an OAI save.
+                    let templen = element.content.length;
+
+                    mster_str += `${element.content}`;
+                    mster_str = mster_str.trim()
+                    finstr += `\n${mster_str}`;
+                });
+                finstr = finstr.trim();
+                sessionChat.value = finstr;
+                await sessionChatUnFocused();
+            } catch (error) {
+                console.log(`Not an OAI Save; ${error}`);
+                try {
+                    let finstr = '';
+                    let temp = sessionChat.value = result.content.data;
+                    console.log(temp);
+                    temp.forEach(element => {
+                        let mster_str = '';
+                        if (element.INF_TYPE === 'PROMPT') {
+                            mster_str += `{{[INPUT]}}${element.INF_PROMPT}`;
+                        } else if (element.INF_TYPE === 'RESPONSE') {
+                            let msg = element.choices[0].message;
+                            if (msg.role === 'user') {
+                                mster_str += '{{[INPUT]}}';
+                            } else if (msg.role === 'assistant') {
+                                mster_str += '{{[OUTPUT]}}';
+                            } else {
+                                mster_str += '{{[SYSTEM]}}'
+                            }
+                            if ('reasoning' in msg) {
+                                mster_str += `<think>${element.reasoning}</think>`
+                            }
+                            mster_str += `${element.content}`;
+                        }
+                        finstr += '\n' + mster_str.trim();
+                    });
+                    finstr = finstr.trim()
+                    sessionChat.value = finstr;
+                    await sessionChatUnFocused();
+
+                } catch (error) {
+                    console.log(`Not a terminal Save; ${error}`);
+                    sessionChat.value = result.content.data;
+                    await sessionChatUnFocused();
+                }
+            }
+        }
     } catch (error) {
         console.error("Error uploading file:", error);
     }
